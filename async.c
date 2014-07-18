@@ -601,6 +601,7 @@ static int __redisAsyncCommand(redisAsyncContext *ac, redisCallbackFn *fn, void 
                 dictReplace(ac->sub.patterns,sname,&cb);
             else
                 dictReplace(ac->sub.channels,sname,&cb);
+            sdsfree(sname);
         }
     } else if (strncasecmp(cstr,"unsubscribe\r\n",13) == 0) {
         /* It is only useful to call (P)UNSUBSCRIBE when the context is
