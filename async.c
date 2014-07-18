@@ -597,11 +597,15 @@ static int __redisAsyncCommand(redisAsyncContext *ac, redisCallbackFn *fn, void 
         /* Add every channel/pattern to the list of subscription callbacks. */
         while ((p = nextArgument(p,&astr,&alen)) != NULL) {
             sname = sdsnewlen(astr,alen);
-            if (pvariant)
-                dictReplace(ac->sub.patterns,sname,&cb);
-            else
-                dictReplace(ac->sub.channels,sname,&cb);
-            sdsfree(sname);
+            if (pvariant) {
+                if( 0 == dictReplace(ac->sub.patterns,sname,&cb)) {
+                        sdsfree(sname);
+                }
+            } else {
+                if (0 == dictReplace(ac->sub.channels,sname,&cb)) {
+                        sdsfree(sname);
+                }
+            }
         }
     } else if (strncasecmp(cstr,"unsubscribe\r\n",13) == 0) {
         /* It is only useful to call (P)UNSUBSCRIBE when the context is
