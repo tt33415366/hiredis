@@ -664,3 +664,8 @@ int redisAsyncCommandArgv(redisAsyncContext *ac, redisCallbackFn *fn, void *priv
     free(cmd);
     return status;
 }
+
+int redisAsyncCommandWithFormat(redisAsyncContext *ac, redisCallbackFn *fn, void *privdata, const char *cmd, int cmd_len)
+{
+        return __redisAsyncCommand(ac, fn, privdata, cmd, cmd_len);
+}
