@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/redis/hiredis.png)](https://travis-ci.org/redis/hiredis)
+
 # HIREDIS
 
 Hiredis is a minimalistic C client library for the [Redis](http://redis.io/) database.
@@ -44,7 +46,7 @@ After trying to connect to Redis using `redisConnect` you should
 check the `err` field to see if establishing the connection was successful:
 
     redisContext *c = redisConnect("127.0.0.1", 6379);
-    if (c->err) {
+    if (c != NULL && c->err) {
         printf("Error: %s\n", c->errstr);
         // handle error
     }
@@ -66,7 +68,7 @@ When you need to pass binary safe strings in a command, the `%b` specifier can b
 used. Together with a pointer to the string, it requires a `size_t` length argument
 of the string:
 
-    reply = redisCommand(context, "SET foo %b", value, valuelen);
+    reply = redisCommand(context, "SET foo %b", value, (size_t) valuelen);
 
 Internally, Hiredis splits the command in different arguments and will
 convert it to the protocol used to communicate with Redis.
@@ -340,6 +342,10 @@ The reply parsing API consists of the following functions:
     int redisReaderFeed(redisReader *reader, const char *buf, size_t len);
     int redisReaderGetReply(redisReader *reader, void **reply);
 
+The same set of functions are used internally by hiredis when creating a
+normal Redis context, the above API just exposes it to the user for a direct
+usage.
+
 ### Usage
 
 The function `redisReaderCreate` creates a `redisReader` structure that holds a
@@ -353,6 +359,9 @@ and a reply object (as described above) via `void **reply`. The returned status
 can be either `REDIS_OK` or `REDIS_ERR`, where the latter means something went
 wrong (either a protocol error, or an out of memory error).
 
+The parser limits the level of nesting for multi bulk payloads to 7. If the
+multi bulk nesting level is higher than this, the parser returns an error.
+
 ### Customizing replies
 
 The function `redisReaderGetReply` creates `redisReply` and makes the function
@@ -365,6 +374,29 @@ immediately after creating the `redisReader`.
 
 For example, [hiredis-rb](https://github.com/pietern/hiredis-rb/blob/master/ext/hiredis_ext/reader.c)
 uses customized reply object functions to create Ruby objects.
+
+### Reader max buffer
+
+Both when using the Reader API directly or when using it indirectly via a
+normal Redis context, the redisReader structure uses a buffer in order to
+accumulate data from the server.
+Usually this buffer is destroyed when it is empty and is larger than 16
+kb in order to avoid wasting memory in unused buffers
+
+However when working with very big payloads destroying the buffer may slow
+down performances considerably, so it is possible to modify the max size of
+an idle buffer changing the value of the `maxbuf` field of the reader structure
+to the desired value. The special value of 0 means that there is no maximum
+value for an idle buffer, so the buffer will never get freed.
+
+For instance if you have a normal Redis context you can set the maximum idle
+buffer to zero (unlimited) just with:
+
+    context->reader->maxbuf = 0;
+
+This should be done only in order to maximize performances when working with
+large payloads. The context should be set back to `REDIS_READER_MAX_BUF` again
+as soon as possible in order to prevent allocation of useless memory.
 
 ## AUTHORS
 
