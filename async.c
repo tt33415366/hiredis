@@ -191,9 +191,10 @@ redisAsyncContext *redisAsyncConnectUnix(const char *path) {
     return ac;
 }
 
-int redisAsyncSetConnectCallback(redisAsyncContext *ac, redisConnectCallback *fn) {
+int redisAsyncSetConnectCallbackWithData(redisAsyncContext *ac, redisConnectCallback *fn, void *privdata) {
     if (ac->onConnect == NULL) {
         ac->onConnect = fn;
+	ac->dataOnConnect = privdata;
 
         /* The common way to detect an established connection is to wait for
          * the first write event to be fired. This assumes the related event
@@ -204,9 +205,10 @@ int redisAsyncSetConnectCallback(redisAsyncContext *ac, redisConnectCallback *fn
     return REDIS_ERR;
 }
 
-int redisAsyncSetDisconnectCallback(redisAsyncContext *ac, redisDisconnectCallback *fn) {
+int redisAsyncSetDisconnectCallbackWithData(redisAsyncContext *ac, redisDisconnectCallback *fn, void *privdata) {
     if (ac->onDisconnect == NULL) {
         ac->onDisconnect = fn;
+	ac->dataOnDisconnect = privdata;
         return REDIS_OK;
     }
     return REDIS_ERR;
@@ -295,9 +297,9 @@ static void __redisAsyncFree(redisAsyncContext *ac) {
      * this context, the status will always be REDIS_OK. */
     if (ac->onDisconnect && (c->flags & REDIS_CONNECTED)) {
         if (c->flags & REDIS_FREEING) {
-            ac->onDisconnect(ac,REDIS_OK);
+            ac->onDisconnect(ac,REDIS_OK, ac->dataOnDisconnect);
         } else {
-            ac->onDisconnect(ac,(ac->err == 0) ? REDIS_OK : REDIS_ERR);
+            ac->onDisconnect(ac,(ac->err == 0) ? REDIS_OK : REDIS_ERR, ac->dataOnDisconnect);
         }
     }
 
@@ -486,14 +488,14 @@ static int __redisAsyncHandleConnect(redisAsyncContext *ac) {
         if (errno == EINPROGRESS)
             return REDIS_OK;
 
-        if (ac->onConnect) ac->onConnect(ac,REDIS_ERR);
+        if (ac->onConnect) ac->onConnect(ac,REDIS_ERR, ac->dataOnConnect);
         __redisAsyncDisconnect(ac);
         return REDIS_ERR;
     }
 
     /* Mark context as connected. */
     c->flags |= REDIS_CONNECTED;
-    if (ac->onConnect) ac->onConnect(ac,REDIS_OK);
+    if (ac->onConnect) ac->onConnect(ac,REDIS_OK, ac->dataOnConnect);
     return REDIS_OK;
 }
 

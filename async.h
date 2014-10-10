@@ -54,8 +54,8 @@ typedef struct redisCallbackList {
 } redisCallbackList;
 
 /* Connection callback prototypes */
-typedef void (redisDisconnectCallback)(const struct redisAsyncContext*, int status);
-typedef void (redisConnectCallback)(const struct redisAsyncContext*, int status);
+typedef void (redisDisconnectCallback)(const struct redisAsyncContext*, int status, void *privdata);
+typedef void (redisConnectCallback)(const struct redisAsyncContext*, int status, void *privdata);
 
 /* Context for an async connection to Redis */
 typedef struct redisAsyncContext {
@@ -85,9 +85,11 @@ typedef struct redisAsyncContext {
     /* Called when either the connection is terminated due to an error or per
      * user request. The status is set accordingly (REDIS_OK, REDIS_ERR). */
     redisDisconnectCallback *onDisconnect;
+	void *dataOnDisconnect;
 
     /* Called when the first write event was received. */
     redisConnectCallback *onConnect;
+	void *dataOnConnect;
 
     /* Regular command callbacks */
     redisCallbackList replies;
@@ -104,8 +106,12 @@ typedef struct redisAsyncContext {
 redisAsyncContext *redisAsyncConnect(const char *ip, int port);
 redisAsyncContext *redisAsyncConnectBind(const char *ip, int port, const char *source_addr);
 redisAsyncContext *redisAsyncConnectUnix(const char *path);
-int redisAsyncSetConnectCallback(redisAsyncContext *ac, redisConnectCallback *fn);
-int redisAsyncSetDisconnectCallback(redisAsyncContext *ac, redisDisconnectCallback *fn);
+#define redisAsyncSetConnectCallback(redisAsyncContext *ac, redisConnectCallback *fn) \
+		redisAsyncSetConnectCallbackWithData(ac, fn, NULL)
+#define redisAsyncSetDisconnectCallback(redisAsyncContext *ac, redisDisconnectCallback *fn) \
+		redisAsyncSetDisconnectCallbackWithData(ac, fn, NULL)
+int redisAsyncSetConnectCallbackWithData(redisAsyncContext *ac, redisConnectCallback *fn, void *privdata);
+int redisAsyncSetDisconnectCallbackWithData(redisAsyncContext *ac, redisDisconnectCallback *fn, void *privdata);
 void redisAsyncDisconnect(redisAsyncContext *ac);
 void redisAsyncFree(redisAsyncContext *ac);
 
