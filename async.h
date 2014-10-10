@@ -106,9 +106,9 @@ typedef struct redisAsyncContext {
 redisAsyncContext *redisAsyncConnect(const char *ip, int port);
 redisAsyncContext *redisAsyncConnectBind(const char *ip, int port, const char *source_addr);
 redisAsyncContext *redisAsyncConnectUnix(const char *path);
-#define redisAsyncSetConnectCallback(redisAsyncContext *ac, redisConnectCallback *fn) \
+#define redisAsyncSetConnectCallback(ac, fn) \
 		redisAsyncSetConnectCallbackWithData(ac, fn, NULL)
-#define redisAsyncSetDisconnectCallback(redisAsyncContext *ac, redisDisconnectCallback *fn) \
+#define redisAsyncSetDisconnectCallback(ac, fn) \
 		redisAsyncSetDisconnectCallbackWithData(ac, fn, NULL)
 int redisAsyncSetConnectCallbackWithData(redisAsyncContext *ac, redisConnectCallback *fn, void *privdata);
 int redisAsyncSetDisconnectCallbackWithData(redisAsyncContext *ac, redisDisconnectCallback *fn, void *privdata);
